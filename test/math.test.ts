@@ -13,4 +13,8 @@ describe("sum", () => {
   it("returns 0 for an empty list", () => {
     expect(sum([])).toBe(0);
   });
+
+  it("returns the element itself for a single-item list", () => {
+    expect(sum([42])).toBe(42);
+  });
 });
