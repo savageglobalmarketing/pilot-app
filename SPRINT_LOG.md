@@ -61,3 +61,19 @@ each day.
 - Supabase setup steps staged at `docs/supabase-setup.md` (paste-ready).
 - Note: `npm audit` reports vulnerabilities in dev-only transitive deps
   (vitest/eslint toolchain); not shipped, tracked not blocking.
+- Repo transferred `sanchexm/pilot-app` -> `savageglobalmarketing/pilot-app`
+  (D1). Git remote + README badge updated. CI green post-transfer on `main`.
+- Workflow labels created on the org repo: `agent-ready`, `agent-task`,
+  `agent-working`, `needs-spec`, `queued` (used by n8n W1).
+- Pipeline smoke test: branch `task-day1-smoke` -> PR #1 -> full hardened CI
+  (lint -> typecheck -> build -> test+coverage) **green**. Left open as the
+  first Tier-1 human-approval rehearsal (merge is the human's call).
+
+### Day 1 exit-criteria status
+| Criterion | Status |
+|---|---|
+| SOP signed off | 🟡 Drafted (`docs/GUARDRAILS-SOP.md`), awaiting Santiago's sign-off |
+| Schema live | 🟡 Staged paste-ready (`docs/supabase-setup.md`); needs Supabase project (user) |
+| Trivial task on a branch, CI passing | 🟢 Done — PR #1 green |
+| Branch protection on `main` | 🔴 Blocked (DEV-1) — free plan can't protect a private repo |
+| CI runs tests on every PR | 🟢 Confirmed on PR #1 |
