@@ -1,0 +1,16 @@
+{
+  "name": "pilot-app",
+  "version": "1.0.0",
+  "description": "Minimalist pilot app with a working test suite and CI pass/fail signal.",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}
