@@ -1,6 +1,6 @@
 # Guardrails SOP — SGM Agent Dev Team (Phase 1)
 
-**Status: DRAFT — awaiting sign-off from Santiago.**
+**Status: SIGNED OFF by Santiago (santiago@savageglobalent.com), 2026-07-16.**
 This is the safety system. It is enforced in config + n8n, not by trust. One page
 on purpose. Source: plan §6.
 
@@ -49,4 +49,5 @@ every merge).
   `build-and-test` check on `main`. Repo contains no secrets or client data.
 
 ---
-Sign-off: ____________________  Date: __________
+Sign-off: Santiago (santiago@savageglobalent.com)  Date: 2026-07-16
+(Recorded from explicit in-session approval to run the pod under these caps/tiers.)
