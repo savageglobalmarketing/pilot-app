@@ -1,0 +1,37 @@
+{
+  "env": {
+    "N8N_EVENTS_URL": "SET_IN_LOCAL_SETTINGS_OR_SHELL_ENV"
+  },
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./**/secrets/**)",
+      "Bash(git push --force:*)",
+      "Bash(rm -rf:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -m 5 -X POST \"$N8N_EVENTS_URL\" -H 'Content-Type: application/json' -d \"{\\\"type\\\":\\\"file_changed\\\",\\\"agent\\\":\\\"${CLAUDE_AGENT_NAME:-main}\\\",\\\"session\\\":\\\"${CLAUDE_SESSION_ID:-unknown}\\\",\\\"ts\\\":\\\"$(date -u +%FT%TZ)\\\"}\" > /dev/null 2>&1 || true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -m 5 -X POST \"$N8N_EVENTS_URL\" -H 'Content-Type: application/json' -d \"{\\\"type\\\":\\\"session_stopped\\\",\\\"agent\\\":\\\"${CLAUDE_AGENT_NAME:-main}\\\",\\\"session\\\":\\\"${CLAUDE_SESSION_ID:-unknown}\\\",\\\"ts\\\":\\\"$(date -u +%FT%TZ)\\\"}\" > /dev/null 2>&1 || true"
+          }
+        ]
+      }
+    ]
+  }
+}
