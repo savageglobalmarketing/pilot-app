@@ -12,9 +12,11 @@ on purpose. Source: plan §6.
 | **1** | New features, UI changes, API changes | Human approval required (Mission Control) |
 | **2** | Auth, payments, data deletion, production deploys, client-facing releases | Human approval **+ rollback plan attached** |
 
-**Phase 1 reality:** Tier 0 auto-merge stays **OFF** until (a) branch protection
-on `main` is live and (b) the CI coverage floor has proven itself over several
-merges. Until then **everything runs Tier 1** (human approves every merge).
+**Phase 1 reality:** Branch protection on `main` is now **live** (ruleset
+requires the `build-and-test` check, blocks force-push/deletion). Tier 0
+auto-merge still stays **OFF** until the CI coverage floor has proven itself
+over several real merges. Until then **everything runs Tier 1** (human approves
+every merge).
 
 ## Hard limits (non-negotiable)
 
@@ -32,7 +34,7 @@ merges. Until then **everything runs Tier 1** (human approves every merge).
   credentials.** Deploys run through GitHub Actions, triggered only by an
   approved row in the `approvals` table.
 - **Branch protection:** `main` requires CI green + the approval gate. No agent
-  pushes to `main` directly. *(Blocked on current free plan — see below.)*
+  pushes to `main` directly. *(LIVE — ruleset `main-protection`.)*
 - **Kill switch:** `pods.status = 'paused'`. n8n checks it before every
   dispatch; Mission Control has the button.
 
@@ -41,11 +43,10 @@ merges. Until then **everything runs Tier 1** (human approves every merge).
 - Rejections require a feedback line; it routes back to the agent (W5) for a
   revision. All decisions are logged to `events` with actor + timestamp.
 
-## Open item blocking full enforcement
-- **Branch protection is unavailable** on the current GitHub plan for a private
-  repo (free account/org → needs Team/Enterprise, or make the repo public).
-  Until resolved: Tier 0 auto-merge stays off; human approves every merge; this
-  is recorded as deviation DEV-1 in `SPRINT_LOG.md`.
+## Resolved items
+- **DEV-1 (branch protection):** Resolved by making `pilot-app` **public** (free
+  plans can protect public repos). Ruleset `main-protection` now enforces the
+  `build-and-test` check on `main`. Repo contains no secrets or client data.
 
 ---
 Sign-off: ____________________  Date: __________
