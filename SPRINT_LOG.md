@@ -83,3 +83,57 @@ each day.
 | Trivial task on a branch, CI passing | 🟢 Done — PR #1 green |
 | Branch protection on `main` | 🟢 Live — ruleset requires `build-and-test` (DEV-1 resolved via public repo) |
 | CI runs tests on every PR | 🟢 Confirmed on PR #1 |
+
+---
+
+## Day 2 (2026-07-16) — Pod Launch
+
+### Decisions
+- **D5 — SOP sign-off:** Santiago signed off the guardrails SOP in-session
+  (explicit approval to run the pod under the caps/tiers). Recorded in
+  `docs/GUARDRAILS-SOP.md`.
+- **D6 — Pod execution model for the pilot week:** Day 3's n8n event bus is not
+  built yet, so the pod runs *inside this Claude Code session*: implementation
+  agents (Sonnet-class) each in an isolated git worktree, reviewer agents
+  (Opus-class) posting a `VERDICT` PR comment. This mirrors the plan's §9
+  pipeline minus the automated event bus. Model routing follows the SOP:
+  Sonnet for implementation, Opus for review.
+- **D7 — Proportionate choreography:** For these small, independent utility
+  tasks the pod ran as implementer → reviewer per task (QA folded into the
+  implementer's mandatory green-gate run + the reviewer's test-meaningfulness
+  check) rather than spinning all five roles per card. Rationale: the SOP's
+  cost-discipline/model-routing guardrail discourages spending Opus turns on
+  trivial orchestration. Full lead-decomposition choreography kicks in for
+  multi-file tasks (e.g. #7, which touches shared `math.ts`).
+
+### Deviations
+- **DEV-2 (minor): Agent-tool built-in worktree isolation unavailable.** The
+  harness flagged the working dir as "not a git repository" (it was created
+  after `git init` mid-session), so `isolation: worktree` failed. Worked around
+  by creating git worktrees manually and pinning each agent to its own worktree
+  path. No guardrail impact.
+- Note: the `.claude/settings.json` `rm -rf` deny rule fired once during setup
+  (blocked a cleanup command) — guardrail working as intended; used a
+  non-destructive path instead.
+
+### Work completed
+- Six task cards created as GitHub issues #3–#8 (2 Tier 0, 4 Tier 1), each
+  following the template; titles/tiers/goals verified aligned.
+- First pod pass on the two recommended independent Tier-1 cards:
+  - **#5 clamp → PR #9**: `src/clamp.ts` + tests; gate green, 100% coverage,
+    16 tests. Reviewer verdict **ESCALATE** (clean Tier 1 → human approval).
+  - **#6 truncate → PR #10**: `src/truncate.ts` + tests; gate green, 100%
+    coverage, 17 tests. Documented behavior for `maxLength < suffix.length`
+    (returns the suffix sliced to `maxLength`). Reviewer verdict **ESCALATE**.
+- Worktrees cleaned up; branches `task-5-clamp` / `task-6-truncate` remain on
+  origin behind their PRs.
+
+### Day 2 exit-criteria status
+| Criterion | Status |
+|---|---|
+| ≥2 tasks reach a reviewable PR with tests passing | 🟢 Done — PRs #9 and #10, both CI-green, both reviewed ESCALATE |
+| Agent configs calibrated | 🟢 No misses this pass — both agents honored scope, conventions, and the coverage floor on the first attempt |
+
+### Awaiting human (before Day 3)
+- Your approval (merge) of PRs #9 and #10 — the first real Tier-1 approvals.
+- Supabase project creation (needed for Day 3 orchestration; schema staged).
