@@ -43,6 +43,12 @@ each day.
   upgrade org to Team, make repo public, or run Tier 1-only with protection
   deferred (documented weakening). Until resolved, **no Tier 0 auto-merge** and
   the pod operates with human approval on every merge.
+  - **RESOLVED (2026-07-16):** User chose to make `pilot-app` **public** (repo
+    has no secrets/client data — scanned before flipping). Ruleset
+    `main-protection` (#19069447) now enforces the `build-and-test` check on
+    `main` and blocks force-push/deletion. Direct pushes to `main` are blocked;
+    changes go via PR. Tier 0 auto-merge still deferred until the coverage floor
+    proves itself over several real merges.
 
 ### Work completed
 - `CLAUDE.md` written for the real stack (Node 22 / TS 5.5 / Vitest / ESLint).
@@ -75,5 +81,5 @@ each day.
 | SOP signed off | 🟡 Drafted (`docs/GUARDRAILS-SOP.md`), awaiting Santiago's sign-off |
 | Schema live | 🟡 Staged paste-ready (`docs/supabase-setup.md`); needs Supabase project (user) |
 | Trivial task on a branch, CI passing | 🟢 Done — PR #1 green |
-| Branch protection on `main` | 🔴 Blocked (DEV-1) — free plan can't protect a private repo |
+| Branch protection on `main` | 🟢 Live — ruleset requires `build-and-test` (DEV-1 resolved via public repo) |
 | CI runs tests on every PR | 🟢 Confirmed on PR #1 |
