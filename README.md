@@ -1,5 +1,7 @@
 # Pilot App
 
+[![CI](https://github.com/sanchexm/pilot-app/actions/workflows/ci.yml/badge.svg)](https://github.com/sanchexm/pilot-app/actions/workflows/ci.yml)
+
 A minimalist Node + TypeScript app used to validate the full path from code to a
 CI pass/fail signal: **typecheck -> build -> test**.
 
