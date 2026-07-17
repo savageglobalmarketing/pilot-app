@@ -194,3 +194,49 @@ no manual DB writes.
 | n8n W1, W2, W3 built + wired | 🟢 Done, all three published |
 | GitHub + Claude Code hooks wired to the bus | 🟢 GitHub webhooks live; W2 webhook URL saved as N8N_EVENTS_URL for hooks |
 | A task dispatched via n8n shows correct live status start→PR | 🟢 Proven with issue #7 → PR #12 |
+
+---
+
+## Day 4 (2026-07-17) — Mission Control, part 1
+
+### Decisions
+- **D8 — Slack → Google Chat:** SGM doesn't use Slack; W4 posts to **Google Chat**
+  (already used by other SGM workflows) via an Incoming Webhook. Deviation from
+  the plan (which named Slack); functionally equivalent.
+- **D9 — Dashboard is its own app** (`~/apps/mission-control`, standalone) so it
+  doesn't disturb pilot-app's strict library CI. Vite + React + TS + Tailwind v4.
+- **D10 — Netlify deferred:** ran the dashboard locally for the Day 4 demo per
+  user's choice; Netlify deploy moves to a later step.
+- **D11 — Auth for the demo:** RLS allows only authenticated reads, so the
+  dashboard requires a Supabase Auth login. The user signed in (Claude does not
+  enter passwords).
+
+### Work completed
+- **Mission Control dashboard** scaffolded (frontend agent): Supabase JS client,
+  auth gate (email+password), Fleet View + Kanban, Realtime hooks on agents/
+  tasks, top-bar tiles (active agents, tasks in flight, spend vs cap, pending
+  approvals). Build + typecheck + lint clean. Runs at localhost:5173.
+- **Live proof:** signed in, watched the board render real Supabase data; changed
+  an agent status and moved a task in the DB → Fleet card + Kanban column updated
+  **live via Realtime, no refresh**.
+- **W4 — Approval Notifier (Google Chat)** (`tP4NVY2t7F6FKZG0`, published):
+  webhook `POST /approval-notify`, token-gated, posts a Google Chat card
+  (summary, tier, impact, rollback, buttons to Mission Control + the PR).
+  Verified standalone (bad token → 401; valid → card posted).
+- **W2 → W4 wired:** W2 now branches after ingest — if the RPC created an
+  approval, it calls W4. Verified end-to-end: `approval_requested` → approval row
+  + Google Chat card.
+- Demo data cleaned up afterward; store left with only the real merged task.
+
+### Hardening items (Phase 2, logged not blocking)
+- W4's Google Chat webhook URL and the X-SGM-Token are embedded in workflow JSON
+  (n8n secret store). Move to n8n credentials.
+- In-chat Approve/Reject buttons need a Google Chat *app* with a callback
+  endpoint; for now the card links to the dashboard where decisions happen.
+- Dashboard not yet deployed (Netlify) or domain-restricted; local-only for now.
+
+### Day 4 exit-criteria status
+| Criterion | Status |
+|---|---|
+| Watch agents work live from a browser | 🟢 Fleet View + Kanban live on Realtime (local) |
+| Approval requests appear in chat | 🟢 W4 → Google Chat, proven end-to-end |
