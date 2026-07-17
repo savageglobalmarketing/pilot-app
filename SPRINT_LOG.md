@@ -297,3 +297,43 @@ dashboard by the signed-in user (actor recorded as santiago@savageglobalent.com)
 | Approve works end-to-end from the dashboard | 🟢 PR #15 merged on Approve, task → merged |
 | Reject works end-to-end incl. agent revision | 🟢 Feedback → PR → agent revised → CI green |
 | Watchdog (W6) built | 🟢 Published; full chaos drills are Day 6 |
+
+---
+
+## Day 6 (2026-07-17) — Integration Hardening / Chaos Pass
+
+### Work completed
+- Added approval-expiry enforcement to the watchdog (`sgm_expire_approvals`,
+  merged into `sgm_watchdog`): pending approvals past their 24h deadline are
+  marked `expired` and alerted.
+- Ran the four failure drills against the live guardrails (controlled conditions,
+  pod config snapshotted + restored afterward). All passed:
+
+| Drill | Expected | Result |
+|---|---|---|
+| Kill agent mid-task (silent >30m) | mark error + alert | 🟢 qa → error, "AGENT SILENT" alert |
+| Task exceeds budget | stop + budget_extension approval | 🟢 task → awaiting_approval + approval + alert |
+| Dispatch while over daily cap | block | 🟢 `{ok:false, reason:"daily cap reached"}` |
+| Daily soft cap reached | alert, stay active | 🟢 "SOFT CAP" alert, pod active |
+| Approval past 24h | mark expired + alert | 🟢 decision → expired + alert |
+| Hard cap (kill switch) | pause pod + block dispatch | 🟢 pod → paused + alert; dispatch `{ok:false,"pod paused"}` |
+
+- **Live alert delivery confirmed:** executed W6 in production (exec 11347) with a
+  freshly-silent agent → it marked the agent `error` AND posted the alert to
+  Google Chat (message id returned). Full detect → enforce → notify path works.
+- Alert-noise control: soft-cap alerts de-dupe to once/day/pod (checked against
+  today's `budget_alert` events) so a lingering soft breach doesn't spam.
+- All drill artifacts cleaned; pod restored (active, $50/$100); watchdog dry-run
+  quiet.
+
+### Notes
+- Drills were exercised at the enforcement layer (the `sgm_watchdog` /
+  `sgm_dispatch_task` functions W6/W1 call) plus one full W6 production run for
+  end-to-end alert delivery. This is faithful because the workflows are thin
+  wrappers over those functions.
+
+### Day 6 exit-criteria status
+| Criterion | Status |
+|---|---|
+| All four failure drills produce correct alert/block behavior | 🟢 All four (+ kill switch) verified |
+| Alert noise tightened | 🟢 Soft-cap de-duped once/day |
