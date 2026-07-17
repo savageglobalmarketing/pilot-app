@@ -240,3 +240,60 @@ no manual DB writes.
 |---|---|
 | Watch agents work live from a browser | 🟢 Fleet View + Kanban live on Realtime (local) |
 | Approval requests appear in chat | 🟢 W4 → Google Chat, proven end-to-end |
+
+---
+
+## Day 5 (2026-07-17) — Mission Control, part 2
+
+### Decisions
+- **D12 — Decision auth by user JWT, not a shared secret.** The decisions
+  webhook is public, so W5 verifies the caller's Supabase login token via
+  `/auth/v1/user` (actor = the verified email). This avoids embedding a
+  guardrail token in browser JS (which would let anyone approve/merge). Took the
+  longer path per the non-negotiable-guardrails rule.
+- **D13 — Controls via authenticated RPC.** Pause/resume goes straight from the
+  dashboard through `sgm_set_pod_paused` (SECURITY DEFINER, granted to
+  authenticated) — no extra workflow needed. Writes still bypass the
+  service-role-only RLS only through vetted definer functions.
+- **D14 — Cost & Health panel deferred** (plan §11 allows it to slip). Fleet
+  View + Approval Queue were the must-haves and are done. Controls (pause/resume)
+  shipped; a dedicated Cost/Health page is a fast follow.
+
+### Work completed
+- **DB decision logic** as functions: `sgm_decide` (apply approve/reject,
+  idempotent, expiry-guarded), `sgm_watchdog` (budget/health enforcement),
+  `sgm_set_pod_paused` (controls). Unit-tested via psql.
+- **W5 — Decision Executor** (`RzqxFlG4FHkTp6ew`, published): webhook
+  `/decisions` → Verify User (JWT) → `sgm_decide` → route: approve = merge PR via
+  GitHub API; reject = post feedback comment via GitHub node → Google Chat update.
+- **W6 — Budget & Health Watchdog** (`E2usl95EvqaqFF2u`, published): every 15 min
+  runs `sgm_watchdog` (pauses pod on hard cap, soft-cap alert once/day, marks
+  silent agents error, stops over-budget tasks with a budget_extension approval,
+  flags stuck tasks) → posts alerts to Google Chat. Dry-run verified (0 alerts on
+  a clean store).
+- **Dashboard part 2:** Approval Queue page (pending approvals joined to task,
+  Realtime, Approve / Reject-with-feedback, keyboard shortcuts) + Pod Controls
+  (status + pause/resume) in the header. Build/typecheck/lint clean; 26 dashboard
+  tests added and passing.
+
+### End-to-end proof (exit criterion)
+Using a real backlog task (#8 capitalize, PR #15), both loops driven from the
+dashboard by the signed-in user (actor recorded as santiago@savageglobalent.com):
+- **Reject:** feedback posted to PR #15 → task → in_progress → pod agent revised
+  (hyphenated-word handling + 4 tests, CI green) → queue cleared live.
+- **Approve:** PR #15 merged via W5 → W3 set task #8 → merged → Google Chat
+  "approved & merged". 5th feature task shipped through the full pipeline.
+
+### Notes / hardening (Phase 2)
+- A corrupted Vite HMR state blanked the dashboard mid-build; a clean dev-server
+  restart fixed it. Non-issue for a deployed (built) app.
+- Merge via W5 requires the PR up-to-date + CI green (branch protection) — the
+  demo PR satisfied both before approval.
+- Cost & Health dashboard page still to build (deferred, §11).
+
+### Day 5 exit-criteria status
+| Criterion | Status |
+|---|---|
+| Approve works end-to-end from the dashboard | 🟢 PR #15 merged on Approve, task → merged |
+| Reject works end-to-end incl. agent revision | 🟢 Feedback → PR → agent revised → CI green |
+| Watchdog (W6) built | 🟢 Published; full chaos drills are Day 6 |
