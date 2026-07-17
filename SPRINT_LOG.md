@@ -337,3 +337,69 @@ dashboard by the signed-in user (actor recorded as santiago@savageglobalent.com)
 |---|---|
 | All four failure drills produce correct alert/block behavior | 🟢 All four (+ kill switch) verified |
 | Alert noise tightened | 🟢 Soft-cap de-duped once/day |
+
+---
+
+## Day 7 (2026-07-17) — Live Run & Measurement
+
+Phase 2 brief deferred at user's request.
+
+### Live run
+- Dispatched the remaining backlog through the full pipeline via Mission Control:
+  issues #4 (refactor: extract normalize) and #3 (docs: usage examples) — both
+  Tier 0, labeled `agent-ready` → W1 → pod implementers → PRs #19/#18 → reviewers
+  (ESCALATE) → approvals raised → **approved from the dashboard by the user** →
+  W5 merged → W3 set them `merged`. Docs PR was fast-forwarded onto main between
+  the two approvals (branch protection requires up-to-date).
+
+### Throughput (measured)
+- **Backlog tasks shipped by the pod this week: 6** — clamp, truncate,
+  mean/median, capitalize, refactor(normalize), docs — all merged via the
+  approval gate (plus the Day-1 human smoke test). Bar was ≥3.
+- **Fully-automated pipeline (W1→W3→W5) tasks: 4** (#3, #4, #7, #8) — dispatched
+  by label, status-synced by webhooks, approved from the dashboard.
+- **Decisions via Mission Control:** 3 approved, 1 rejected → 1 revision loop
+  (capitalize). Rejection rate 25% of gated decisions (1/4); the one rejection
+  drove a real agent revision that then passed.
+- **Time task_started→merged (wall-clock incl. human-approval gaps):** #8 ~20m,
+  #4 ~1h02m, #3 ~1h11m, #7 ~7h24m (spanned the reject/revise loop + review
+  delays). These include human wait time, not pure agent compute.
+- **Audit trail:** 33 events across 8 types in Supabase; every state change
+  logged.
+- **Spend:** within caps all week (Day-6 drills proved the $50 soft / $100 hard
+  enforcement). NOTE: per-task dollar spend was NOT captured in `cost_log` —
+  the pilot's Claude Code hooks emit lifecycle events, not token usage, so
+  `cost_log` stayed empty. Observed per-agent usage was ~15–50k output tokens
+  per implementer run and ~10–40k per review — small, but real dollar tracking
+  needs the hook upgrade noted below. **Phase 2 instrumentation item.**
+
+### Dashboard fixes/features this day
+- **Fixed a Kanban black-screen crash** (found via a new error boundary): every
+  Realtime hook hard-coded its channel name, so `usePods` (header PodControls)
+  and the Kanban page both claimed topic `pods-realtime`, which Supabase
+  rejects. Fix: unique channel name per subscription (`…-${randomUUID()}`) across
+  all six hooks. Added a page-level `ErrorBoundary` so any future page error
+  shows a message + Retry instead of blanking the app.
+- **Added two live Fleet View panels** (per user request): "Pending Approvals"
+  (PR name, number, expiry, links into the Approval Queue) and "Active Agents"
+  (working agents with role, tier, current activity, heartbeat, spend) — both
+  Realtime.
+
+### Definition-of-done for the week (plan §1)
+🟢 Met: a 5-agent pod shipped **6** real backlog items through the full pipeline
+(task card → agent work → agent review → CI → dashboard approval → merge), spend
+caps enforced, every event visible in Mission Control.
+
+### Day 7 exit-criteria status
+| Criterion | Status |
+|---|---|
+| ≥3 tasks merged through the full pipeline | 🟢 6 shipped |
+| Week's spend within cap | 🟢 Caps enforced; drills proved cutoffs (dollar cost_log = Phase 2) |
+| Real throughput numbers captured | 🟢 Above |
+
+### Known gaps → Phase 2 (deferred)
+- Wire Claude Code hooks to emit real token usage → populate `cost_log` for true
+  per-task $ spend.
+- Deploy Mission Control to Netlify (currently local) + domain-restricted auth.
+- Move the `X-SGM-Token` / Google Chat URL into n8n credentials.
+- In-chat Approve/Reject (Google Chat app with callback), 24/7 scheduling, pod 2.
