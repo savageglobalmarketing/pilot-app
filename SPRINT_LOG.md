@@ -403,3 +403,32 @@ caps enforced, every event visible in Mission Control.
 - Deploy Mission Control to Netlify (currently local) + domain-restricted auth.
 - Move the `X-SGM-Token` / Google Chat URL into n8n credentials.
 - In-chat Approve/Reject (Google Chat app with callback), 24/7 scheduling, pod 2.
+
+---
+
+## Post-sprint (2026-07-17) — Claude Console spend tile
+
+Added a month-to-date Claude spend indicator to Mission Control (user request).
+This is org-wide API spend, distinct from the per-task `cost_log` gap above.
+
+- **Data source:** Anthropic Admin Cost API (`GET /v1/organizations/cost_report`,
+  requires an **Admin** API key). Amounts are in cents → summed and ÷100 for USD.
+  Console *credit balance* is intentionally NOT shown — Anthropic exposes no API
+  for remaining prepaid credit; we show spend-vs-budget instead.
+- **Supabase:** new single-row `claude_cost` table + `sgm_set_claude_cost(p)` and
+  `sgm_set_claude_budget(p)` (SECURITY DEFINER). RLS: read = authenticated;
+  writes via service role only (deliberately NOT granted to `anon`, which ships
+  in the browser bundle). Added to the realtime publication. Monthly budget set
+  to **$50**.
+- **n8n:** workflow `SGM — Claude Cost → Supabase` (id `4jp42Gdt1N5LqJMT`) —
+  hourly schedule → Anthropic Cost API → total MTD → upsert Supabase. Mirrors
+  W1's `httpRequest` + `supabaseApi` pattern. Created but INACTIVE pending manual
+  credential binding (Admin-key Header Auth on the cost node; SGM Supabase on the
+  upsert node), then activate.
+- **Dashboard:** `claude_cost` type + `useClaudeCost` hook + `ClaudeSpendTile` in
+  the Fleet View top bar (spend/budget with a color bar, "as of" timestamp).
+  Realtime; `tsc` + `vite build` clean. Tile reads $0.00 until the workflow's
+  first successful run.
+- **Scope note:** figure is total org spend on the Claude API key (API calls +
+  n8n workflows + pod), not pod-only. Pod-only $ still depends on the hook
+  upgrade in the Phase 2 list above.
