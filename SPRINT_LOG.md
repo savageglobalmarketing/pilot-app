@@ -137,3 +137,60 @@ each day.
 ### Awaiting human (before Day 3)
 - Your approval (merge) of PRs #9 and #10 — the first real Tier-1 approvals.
 - Supabase project creation (needed for Day 3 orchestration; schema staged).
+
+---
+
+## Day 3 (2026-07-17) — Orchestration Layer
+
+### Work completed
+- **Supabase live:** schema applied (6 tables, `pod_spend_today` view, trigger,
+  RLS), Realtime enabled on agents/tasks/approvals via the `supabase_realtime`
+  publication, pod row seeded. Credentials live only in the session-local
+  `scratchpad/supabase.env` (never committed).
+- **DB-side logic as Postgres functions** (keeps n8n workflows thin + atomic):
+  `sgm_ingest_event` (W2), `sgm_dispatch_task` (W1), `sgm_pr_sync` (W3). Each
+  unit-tested via psql before wiring.
+- **n8n credential:** `SGM Supabase` (Supabase API) created by user — chosen over
+  a Postgres credential to avoid the pooler self-signed-cert TLS error.
+- **W2 — Agent Event Ingest** (`wfuXJqcU6wCe2r1x`, published): webhook
+  `POST /agent-events` → validate `X-SGM-Token` → `/rpc/sgm_ingest_event`.
+  Verified: bad token → 401; heartbeat → event+agent+cost_log; approval_requested
+  → event+approval(24h)+task awaiting_approval.
+- **W1 — Task Dispatch** (`Hdjol0xsnzBFoBB1`, published): GitHub `issues` webhook
+  → IF labeled `agent-ready` → `/rpc/sgm_dispatch_task` (validates card, checks
+  pause+daily cap, parses tier/budget, creates task, emits task_started).
+- **W3 — CI/PR Sync** (`ZwU3xGHVkZTP7b3m`, published): GitHub `pull_request`+
+  `check_suite` webhooks → `/rpc/sgm_pr_sync` (branch `task-<issue>` → task;
+  agent_review on PR open, tests_passed/failed on CI, merged/failed on close).
+- **GitHub webhooks installed** (user-approved): issues → W1; pull_request +
+  check_suite → W3.
+
+### End-to-end proof (exit criterion)
+Labeled issue #7 `agent-ready` → W1 created the task (`in_progress`, tier 1,
+budget parsed). Pod implemented #7 → PR #12 → W3 flipped the task to
+`agent_review` with the PR URL; CI green → `tests_passed`. Full Supabase event
+trail: task_started → pr_opened → tests_passed. Live status from dispatch to PR,
+no manual DB writes.
+
+### Bugs found & fixed during wiring
+- **DEV-3:** n8n `githubTrigger` nests the GitHub payload under `$json.body`;
+  initial expressions used `$json.*` → IF fell through / fields undefined. Fixed
+  all field paths to `$json.body.*`.
+- **DEV-4:** PostgREST maps top-level JSON body keys to function args. W1/W3 sent
+  fields un-wrapped → `PGRST202 function not found`. Fixed by wrapping the RPC
+  body as `{ p: {...} }` (matching the `p jsonb` signature; W2 already did this).
+
+### Hardening items (Phase 2, logged not blocking)
+- Move the W2 `X-SGM-Token` from the IF node into a Header Auth credential (out
+  of workflow JSON).
+- Supabase DB connection currently uses the Session pooler; DDL was run over it
+  fine. If a Postgres credential is ever needed in n8n, use CA-verified SSL.
+- n8n MCP can't bind predefined credential types (supabaseApi) to HTTP Request
+  nodes; those were bound once in the UI. Documented for future workflows.
+
+### Day 3 exit-criteria status
+| Criterion | Status |
+|---|---|
+| n8n W1, W2, W3 built + wired | 🟢 Done, all three published |
+| GitHub + Claude Code hooks wired to the bus | 🟢 GitHub webhooks live; W2 webhook URL saved as N8N_EVENTS_URL for hooks |
+| A task dispatched via n8n shows correct live status start→PR | 🟢 Proven with issue #7 → PR #12 |
