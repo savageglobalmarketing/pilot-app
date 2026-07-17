@@ -12,6 +12,16 @@ A tiny utility library so the test suite exercises real logic:
 - `slugify(text)` - convert text to a URL-safe slug
 - `sum(numbers)` - total a list of numbers
 
+## Usage
+
+```ts
+import { slugify } from "./src/slugify.js";
+import { sum } from "./src/math.js";
+
+slugify("Q3 Marketing Plan (Draft)"); // "q3-marketing-plan-draft"
+sum([10, 20, 30]); // 60
+```
+
 ## Setup
 
 ```bash
