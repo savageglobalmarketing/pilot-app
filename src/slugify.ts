@@ -1,3 +1,5 @@
+import { normalize } from "./normalize.js";
+
 /**
  * Convert arbitrary text into a URL-safe slug.
  *
@@ -13,9 +15,7 @@
  * ```
  */
 export function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .trim()
+  return normalize(text)
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
