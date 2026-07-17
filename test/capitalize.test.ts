@@ -33,4 +33,20 @@ describe("capitalize", () => {
   it("handles single-character words", () => {
     expect(capitalize("a b c")).toBe("A B C");
   });
+
+  it("capitalizes each part of a hyphenated word", () => {
+    expect(capitalize("well-known")).toBe("Well-Known");
+  });
+
+  it("capitalizes each part of a multi-hyphen word", () => {
+    expect(capitalize("mother-in-law")).toBe("Mother-In-Law");
+  });
+
+  it("lowercases the rest of each hyphenated part when mixed case", () => {
+    expect(capitalize("wELL-kNOWN")).toBe("Well-Known");
+  });
+
+  it("capitalizes hyphenated words within a multi-word string", () => {
+    expect(capitalize("a well-known author")).toBe("A Well-Known Author");
+  });
 });
