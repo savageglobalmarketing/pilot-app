@@ -1,5 +1,11 @@
 /**
  * Sum a list of numbers. Returns 0 for an empty list.
+ *
+ * @example
+ * ```ts
+ * sum([10, 20, 30]); // 60
+ * sum([]); // 0
+ * ```
  */
 export function sum(numbers: number[]): number {
   return numbers.reduce((total, n) => total + n, 0);
