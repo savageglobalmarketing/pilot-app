@@ -432,3 +432,73 @@ This is org-wide API spend, distinct from the per-task `cost_log` gap above.
 - **Scope note:** figure is total org spend on the Claude API key (API calls +
   n8n workflows + pod), not pod-only. Pod-only $ still depends on the hook
   upgrade in the Phase 2 list above.
+
+---
+
+## Post-sprint (2026-07-17) — Developer onboarding workflow
+
+Self-service onboarding for scaling to multiple developers (shared backend,
+per-dev pods model). A manager-only n8n form provisions a new dev's pod and
+emails them a welcome kit.
+
+- **Supabase:** new `sgm_onboard_pod(p)` function (SECURITY DEFINER) — one call
+  inserts a `pods` row + all 5 agents (lead/reviewer `top` tier, backend/
+  frontend/qa `mid`) and returns the generated `pod_id`. Dry-run verified
+  (rolled back).
+- **Onboarding kit:** curated 17-file zip (`ONBOARDING.md`, `CLAUDE.md`, the 5
+  agent defs, `.claude/settings.json`, agent-task issue template, `ci.yml`,
+  `GUARDRAILS-SOP.md`) published as the public GitHub release
+  **`onboarding-kit-v1`** on pilot-app. No secrets.
+- **n8n:** workflow `SGM — Onboard Developer` (id `lel9TlMst5fAnN5T`) —
+  Basic-Auth form (manager-only) → build payload → `sgm_onboard_pod` → download
+  kit → email developer (instructions + pod ID + zip attached). Form URL:
+  `https://n8n-webhook.agencysavage.com/form/onboard-dev`.
+- **Controlled E2E test (exec 11510):** form → payload → pod+5 agents created →
+  kit downloaded (12,449 bytes, byte-exact match to the release asset) all
+  ✅. **Email send ❌** — SMTP `ETIMEDOUT` (connection timeout to the mail host,
+  ~2 min, 2 attempts). Not a workflow bug: n8n could not open a connection to
+  the `SGM Alerts SMTP` server — a credential host/port/TLS or egress issue to
+  resolve. Test pod + agents deleted afterward (no residual data).
+- **Open item:** fix SMTP connectivity (verify host/port/security on the
+  `SGM Alerts SMTP` credential; consider enabling Retry-on-Fail on the email
+  node), then re-test the email leg. Everything upstream of the send is proven.
+- **Notes:** the n8n form is public-URL by design; Basic Auth on the trigger is
+  what makes it manager-only. Multi-repo pods and a manager-facing confirmation
+  (vs. the current static form message) are possible future enhancements.
+
+---
+
+## Post-sprint (2026-07-17) — Feature-request voting board
+
+Public intake for feature requests that AI-groups near-duplicates and keeps a
+per-feature request counter (a demand signal), modeled on the bug-intake flow.
+
+- **Supabase:** `feature_requests` (grouped features + `request_count`, `status`,
+  `category`) and `feature_request_submissions` (every raw submission,
+  `grouped` | `needs_triage`). Functions: `sgm_feature_open_list()` (returns a
+  single JSON object so the n8n item count is always 1, even when empty) and
+  `sgm_feature_apply(p)` (modes new / match / triage; a bad `feature_id`
+  degrades to triage; always persists the raw submission). All branches
+  unit-tested in a rolled-back transaction.
+- **n8n:** workflow `SGM — Feature Request Intake` (id `w6W5dYFFOZcHgurA`) —
+  public form → fetch open features → **one Claude call normalizes + matches** →
+  decide (match increments / new creates / unsure → needs_triage) → apply.
+  Form URL: `https://n8n-webhook.agencysavage.com/form/submit-feature`.
+- **Fallbacks (as requested):** Claude or fetch failure → raw submission
+  preserved to Supabase as `needs_triage`; DB write failure → Google Chat alert
+  with the raw request. Nothing is lost.
+- **Design change beyond the ask:** low-confidence matches go to a dashboard
+  **needs-triage** queue for manual merge rather than silently spawning
+  duplicate features — keeps the counter honest.
+- **Dashboard:** `feature_requests`/`feature_request_submissions` types +
+  `useFeatureRequests` hook + a **Feature Requests** page (cards sorted by count
+  with `N×` badges + a needs-triage queue), a Fleet View summary panel, a nav
+  item, and a **Request a Feature** header link. `tsc` + `vite build` clean;
+  rendering verified in the browser.
+- **Controlled E2E test (live):** A "Dark mode…" → new feature (count 1);
+  B "Night mode please" (differently worded) → **matched** A → count 2;
+  C "Export reports to CSV" → new feature. Grouping + counter proven; test data
+  deleted afterward.
+- **Open item:** the Chat-alert URL is inlined (same Phase 2 credential-migration
+  item as W2–W5). Workflow created; activate after confirming the SGM Supabase
+  credential is bound on the three Supabase nodes.
