@@ -563,3 +563,30 @@ Control (local), automation = n8n.
   2 inline secrets migrated at that point.
 - Cannot be tested here (no Chat app); handler parse/decide logic built to spec,
   verify against the real Chat event shape during app setup.
+
+---
+
+## Post-sprint (2026-07-24) — Phase 2 follow-ups (member UI + JWT verification)
+
+### Pod-member assignment UI
+- Supabase: added `email` to `profiles` (backfilled); extended `sgm_assign_member(p)`
+  and added `sgm_remove_member_pod(p)` — both admin-or-service-role gated.
+- Dashboard: admin-only **Team** page (nav hidden for non-admins) — assign form
+  (email → pod → role) + member table with per-pod remove. Calls the RPCs from
+  the browser as the admin. `tsc` + build clean.
+- Verified (JWT simulation): admin assign creates the membership; a non-admin
+  caller gets `ERROR: admins only`.
+
+### JWT verification on the Chat handler
+- n8n can't verify signatures (Code node has no `crypto`; the JWT node can't
+  track Google's rotating certs — both confirmed), so verification runs in a
+  **Supabase Edge Function** (`chat-decision`, Deno/Web Crypto): RS256 against
+  Google's JWKs (`chat@system.gserviceaccount.com`) + `iss`/`aud`/`exp`, then
+  forwards verified interactions to the n8n handler (still token-gated =
+  defense-in-depth). Source: `sgm-agent-sprint/infra/edge-functions/chat-decision/`.
+- Deployed `--no-verify-jwt`; Chat app interaction endpoint repointed to
+  `/functions/v1/chat-decision`. Verified live: no-auth and bogus-token POSTs
+  return 401 from the function; GET returns 405. Genuine-JWT happy path confirmed
+  by a real Approve click. JWK approach validated against Google's live keys.
+- New chain: Chat → Edge Function (verifies signature) → n8n handler (token) →
+  sgm_decide → merge → reply.
