@@ -502,3 +502,64 @@ per-feature request counter (a demand signal), modeled on the bug-intake flow.
 - **Open item:** the Chat-alert URL is inlined (same Phase 2 credential-migration
   item as W2–W5). Workflow created; activate after confirming the SGM Supabase
   credential is bound on the three Supabase nodes.
+
+---
+
+## Post-sprint (2026-07-24) — Phase 2 platform hardening (5 features)
+
+Delivered five requested platform features. DB = Supabase, dash = Mission
+Control (local), automation = n8n.
+
+### #5 Multi-repo pods
+- `pod_repos` table (repo → pod, unique), backfilled from `pods.repo`.
+- `sgm_pod_for_repo(repo)` resolver + `sgm_add_repo_to_pod(p)`.
+- `sgm_onboard_pod` now accepts `repos[]` (or single `repo`), populating
+  `pod_repos`. Verified (multi-repo onboard + resolution, rolled back).
+
+### #3 Repo-parameterized triggers (org webhook)
+- `sgm_dispatch_task` + `sgm_pr_sync` rewritten to resolve pod/task by the
+  incoming repo via `pod_repos` (no more pilot-app hardcoding; also fixed a
+  latent PR-sync issue-number collision across repos).
+- New workflow **SGM — GitHub Events Router** (`cFJR4JKq3glBY5eY`): one webhook,
+  token-authed, routes issues→dispatch and pull_request/check_suite→pr_sync.
+  Verified all routes + token rejection.
+- **Pending (user):** bind SGM Supabase on router nodes (done), activate, and add
+  ONE org-level GitHub webhook → `/webhook/github-events?token=…`. Then onboarding
+  a repo needs zero n8n edits. Disable old W1/W3 after cutover.
+
+### #1 Per-pod dashboard scoping (manager sees all, members see their pod)
+- `profiles` (role admin/member) + `pod_members` tables; santiago seeded admin.
+- `sgm_is_admin()` / `sgm_can_see_pod()` / `sgm_can_see_task()` + `sgm_assign_member(p)`.
+- RLS on pods/agents/tasks/events/cost_log/pod_repos scoped by pod; approvals via
+  task; `pod_spend_today` view set `security_invoker`. Verified: admin sees all,
+  member sees only their pod (JWT simulation).
+- Dashboard: `PodScopeProvider` + header pod selector; Fleet View scoped;
+  PodControls acts on the selected pod. `tsc`+build clean.
+- Follow-up: a UI to call `sgm_assign_member` (assign users to pods).
+
+### #2 Secrets → Supabase secret store (n8n license blocks env vars/Variables)
+- `app_secrets` (service-role-only RLS) + `sgm_get_secrets()` (execute: service_role
+  only; anon denied — verified). Workflows fetch secrets at runtime via the
+  SGM Supabase credential.
+- Migrated + published: Router (org token), **W2** (X-SGM-Token — production-verified),
+  **W5** (Chat URLs), **Bug intake** (Chat URLs). Each via a "Fetch Secrets" node,
+  referencing prior nodes by name to avoid `$json` breaks.
+- Gotcha found + fixed: `update_workflow` saves an unpublished draft and strips
+  default-valued params on re-serialize — it dropped `resource`/`operation` from
+  bug intake's GitHub node; restored before publishing.
+- Inline by design: feature-intake DB-down alert URL (can't fetch from the DB it
+  alerts about); W5 Supabase **anon** key (public). W4 still has 2 inline secrets
+  (folded into the #4 Chat-app rework below).
+
+### #4 In-chat Approve/Reject (n8n side; Google Cloud app = user)
+- New workflow **SGM — Chat Decision Handler** (`ZDQYR7HUwOkX8X7M`): webhook →
+  token-auth (store) → parse Chat CARD_CLICKED → `sgm_decide` (actor = Chat user)
+  → merge PR on approve → reply in Chat.
+- **Pending (user):** run the `chat_decision_token` insert (Supabase SQL editor),
+  bind SGM Supabase + GitHub creds on the handler, activate; create a Google Chat
+  **app** in Google Cloud with interaction endpoint = `/webhook/chat-decision?token=…`;
+  post the interactive card (Approve/Reject action buttons) via the app (incoming
+  webhooks can't do interactive callbacks). W4 gets reworked to post-as-app + its
+  2 inline secrets migrated at that point.
+- Cannot be tested here (no Chat app); handler parse/decide logic built to spec,
+  verify against the real Chat event shape during app setup.
