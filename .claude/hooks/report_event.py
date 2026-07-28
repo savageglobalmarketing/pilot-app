@@ -212,14 +212,36 @@ def usage_delta(session: str, totals: dict) -> dict | None:
     by the number of turns. Deltas make repeat fires harmless.
     """
     path = state_file(session)
+    keys = ("input_tokens", "output_tokens", "cache_creation_input_tokens",
+            "cache_read_input_tokens", "cost_usd")
+
+    if not path.exists():
+        # First sight of this session: seed the watermark and report NOTHING.
+        #
+        # Without this, a session already in progress when the hook is installed
+        # reports its entire history as if it were spent now. That is not
+        # hypothetical — it happened on 2026-07-28: a single Stop billed $345.31 of
+        # already-incurred work, which tripped the $100 hard cap and paused the pod
+        # within the quarter hour. The separate --baseline pass could not prevent it,
+        # because the script goes live the moment it is written, before anyone runs
+        # the seed.
+        #
+        # The cost is that a genuinely new session loses its first turn, a few cents.
+        # That is a far better trade than risking a back-billed session total.
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps({k: totals.get(k) or 0 for k in keys}), encoding="utf-8")
+        except OSError as exc:
+            note(f"state seed failed: {exc}")
+        else:
+            note(f"seeded watermark at ${totals.get('cost_usd', 0):.2f}, not reported")
+        return None
+
     previous = {}
     try:
         previous = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         pass
-
-    keys = ("input_tokens", "output_tokens", "cache_creation_input_tokens",
-            "cache_read_input_tokens", "cost_usd")
     # max(0, ...) guards against a transcript that shrank, e.g. after compaction.
     delta = {k: max(0, (totals.get(k) or 0) - (previous.get(k) or 0)) for k in keys}
     if delta["cost_usd"] <= 0 and delta["output_tokens"] <= 0:
@@ -289,7 +311,12 @@ def post(url: str, token: str, body: dict) -> None:
 
 
 def baseline_all() -> int:
-    """Seed watermarks for existing sessions without reporting them. Run once.
+    """Seed watermarks for every existing session in one pass.
+
+    Mostly redundant now that usage_delta() seeds on first sight of a session, which
+    closes the gap this could not: the script is live the moment it is written, so a
+    Stop could fire before anyone got round to running this. Kept because seeding
+    every transcript up front is still useful when auditing, and it prints the totals.
 
     Why this exists: the watermark starts empty, so the first Stop in a session
     that predates this hook would report its ENTIRE history as if it were spent
