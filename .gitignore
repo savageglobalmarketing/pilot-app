@@ -3,3 +3,7 @@ dist/
 coverage/
 *.log
 .DS_Store
+
+# Holds the real N8N_EVENTS_URL, SGM_WEBHOOK_TOKEN and SGM_POD for the agent-event
+# hooks. Committed placeholders live in settings.json; the real values never do.
+.claude/settings.local.json
