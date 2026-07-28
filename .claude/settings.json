@@ -1,6 +1,7 @@
 {
   "env": {
-    "N8N_EVENTS_URL": "SET_IN_LOCAL_SETTINGS_OR_SHELL_ENV"
+    "N8N_EVENTS_URL": "SET_IN_LOCAL_SETTINGS_OR_SHELL_ENV",
+    "SGM_WEBHOOK_TOKEN": "SET_IN_LOCAL_SETTINGS_OR_SHELL_ENV"
   },
   "permissions": {
     "deny": [
@@ -18,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "curl -s -m 5 -X POST \"$N8N_EVENTS_URL\" -H 'Content-Type: application/json' -d \"{\\\"type\\\":\\\"file_changed\\\",\\\"agent\\\":\\\"${CLAUDE_AGENT_NAME:-main}\\\",\\\"session\\\":\\\"${CLAUDE_SESSION_ID:-unknown}\\\",\\\"ts\\\":\\\"$(date -u +%FT%TZ)\\\"}\" > /dev/null 2>&1 || true"
+            "command": "code=$(curl -s -o /dev/null -w '%{http_code}' -m 5 -X POST \"$N8N_EVENTS_URL\" -H 'Content-Type: application/json' -H \"X-SGM-Token: $SGM_WEBHOOK_TOKEN\" -d \"{\\\"type\\\":\\\"file_changed\\\",\\\"agent\\\":\\\"${CLAUDE_AGENT_NAME:-main}\\\",\\\"session\\\":\\\"${CLAUDE_SESSION_ID:-unknown}\\\",\\\"ts\\\":\\\"$(date -u +%FT%TZ)\\\"}\" 2>/dev/null); [ \"$code\" = \"200\" ] || echo \"$(date -u +%FT%TZ) w2 file_changed -> HTTP ${code:-000}\" >> \"${TMPDIR:-/tmp}/sgm-hooks.log\"; true"
           }
         ]
       }
@@ -28,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "curl -s -m 5 -X POST \"$N8N_EVENTS_URL\" -H 'Content-Type: application/json' -d \"{\\\"type\\\":\\\"session_stopped\\\",\\\"agent\\\":\\\"${CLAUDE_AGENT_NAME:-main}\\\",\\\"session\\\":\\\"${CLAUDE_SESSION_ID:-unknown}\\\",\\\"ts\\\":\\\"$(date -u +%FT%TZ)\\\"}\" > /dev/null 2>&1 || true"
+            "command": "code=$(curl -s -o /dev/null -w '%{http_code}' -m 5 -X POST \"$N8N_EVENTS_URL\" -H 'Content-Type: application/json' -H \"X-SGM-Token: $SGM_WEBHOOK_TOKEN\" -d \"{\\\"type\\\":\\\"session_stopped\\\",\\\"agent\\\":\\\"${CLAUDE_AGENT_NAME:-main}\\\",\\\"session\\\":\\\"${CLAUDE_SESSION_ID:-unknown}\\\",\\\"ts\\\":\\\"$(date -u +%FT%TZ)\\\"}\" 2>/dev/null); [ \"$code\" = \"200\" ] || echo \"$(date -u +%FT%TZ) w2 session_stopped -> HTTP ${code:-000}\" >> \"${TMPDIR:-/tmp}/sgm-hooks.log\"; true"
           }
         ]
       }
