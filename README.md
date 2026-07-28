@@ -5,6 +5,11 @@
 A minimalist Node + TypeScript app used to validate the full path from code to a
 CI pass/fail signal: **typecheck -> build -> test**.
 
+This repo is one project inside the SGM AI agent dev team system, and it keeps only
+what the library itself needs. The platform documentation - the guardrail SOP, Supabase
+setup, developer and manager onboarding, the dashboard architecture, and the sprint log -
+lives in the **mission-control** repo under `docs/`.
+
 ## What's inside
 
 A tiny utility library so the test suite exercises real logic:
