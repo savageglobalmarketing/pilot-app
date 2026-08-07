@@ -58,5 +58,10 @@ and `sum(numbers)` (total of a list). Used by the sprint team, not end users.
 - If blocked, uncertain, or the task exceeds its stated scope: stop and emit an
   ESCALATE rather than guessing.
 - Budget discipline: respect the max turns and max spend on the task card.
-- No agent may merge to `main` or hold deploy credentials. Merges happen only
-  through the approval gate.
+- Never merge a pull request — yours or another agent's — and never hold deploy
+  credentials. Open the PR, get CI green, and stop: merges happen only through
+  the Command Center approval flow (the Pending Approvals card or the Chat
+  approval message). Branch protection may not be enabled on the repo, so
+  nothing will physically block a merge — this rule IS the gate, and
+  self-merging is a guardrail violation. If an approval sits unanswered,
+  escalate rather than merging to unblock yourself.
